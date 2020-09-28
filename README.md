@@ -1,2 +1,2 @@
 # my-manga
-download manga to read 
+learning how to use python through web scraping
