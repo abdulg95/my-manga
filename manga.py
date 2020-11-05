@@ -5,16 +5,18 @@ import shutil,os
 img=[]
 name=""
 chapter=""
+end_chapter=""
 mangapandalink = "http://www.mangapanda.com"
 
 def menu():
   menu = {}
   menu['1']= "View current Popular manga titles" 
   menu['2']= "Download single manga title"
-  menu['3']= "View current manga being tracked"
-  menu['4']= "Track new Manga"
-  menu['5']= "Download tracked manga if title has updated"
-  menu['6']= "Exit"
+  menu['3']= "Download multiple chapters of manga title"
+  menu['4']= "View current manga being tracked"
+  menu['5']= "Track new Manga"
+  menu['6']= "Download tracked manga if title has updated"
+  menu['7']= "Exit"
   while True: 
     options=menu.keys()
     options.sort()
@@ -24,16 +26,18 @@ def menu():
 
     selection=raw_input("Please Select option number:") 
     if selection =='1': 
-      print printPopularList() 
+      printPopularList() 
     elif selection == '2': 
-      print runSingleMangaDownloadRoutine()
-    elif selection == '3':
-      print "Not yet implemented" 
+      runSingleMangaDownloadRoutine()
+    elif selection == '3': 
+      runMultipleMangaDownloadRoutine()       
     elif selection == '4': 
       print "Not yet implemented"
     elif selection == '5': 
       print "Not yet implemented"
     elif selection == '6': 
+      print "Not yet implemented"
+    elif selection == '7': 
       print "GoodBye!!"
       break
     else: 
@@ -57,6 +61,31 @@ def runSingleMangaDownloadRoutine():
 
   download_page(mangapandalink)
   save_chapters()
+
+def runMultipleMangaDownloadRoutine():
+  global name 
+  name = raw_input("Enter manga name: ")
+  # remove spaces in name
+  name= name.replace(' ', '-').lower()
+  global chapter
+  global end_chapter
+  global mangadestinationDir
+  chapter =raw_input("Enter first chapter number: ")
+  chapter=int(chapter)
+  chapteritr = chapter
+  end_chapter =raw_input("Enter last chapter number: ")
+  end_chapter=int(end_chapter)
+  # increase to make range inclusive
+  end_chapter = end_chapter+1
+  print("\nRunning...\n")
+
+  for chap in range(chapteritr,end_chapter):
+    mangadestinationDir =name+' '+str(chap)
+    chapter = chap
+    if not os.path.exists(mangadestinationDir): 
+            os.makedirs(mangadestinationDir)
+    download_page(mangapandalink)
+    save_chapters() 
 
 def printPopularList():
   URL = mangapandalink
@@ -83,12 +112,11 @@ def download_page(link):
           page_content = BeautifulSoup(page.content,'html.parser')         
           row_data=[]
           for row in page_content.findAll('script',attrs={'type':"text/javascript"}):          
-            row_data.append(row.string)
-            print('hi')
+            row_data.append(row.string)            
           img.append(re.findall("[^.]ttps.*jpg",row_data[2]))      
     else:
           break
-  print("done loading chapters, now saving....")
+  print("successfuly loaded chapter, now saving....")
 
 def save_chapters():
   for i,x in enumerate(img):
