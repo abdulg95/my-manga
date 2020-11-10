@@ -44,30 +44,62 @@ def menu():
     else: 
       print "Unknown Option Selected!"
 
+def showRelatedManga(mangalist):
+    global name
+    global chapter
+    global mangadestinationDir
+    mangadict = {}
+    position = 0
+    for manga in mangalist:
+        mangadict[position] = manga
+        position += 1
+    mangadict[position] = 'Go back to main menu'
+    options=mangadict.keys()
+    options.sort()
+    for entry in options: 
+        print entry, mangadict[entry]
+    selection=raw_input("Please select your manga if it is in the List or go back to menu:") 
+    selection = int(selection)
+    if selection == position:
+        return
+    chapter=raw_input("Enter chapter number:") 
+    chapter = int(chapter)
+    name = mangadict[selection]
+    name = name.replace(' ', '-').replace('\'', '').lower()         
+    mangadestinationDir =name+' '+str(chapter)
+    if not os.path.exists(mangadestinationDir): 
+                    os.makedirs(mangadestinationDir)
+
+    download_page()
+    save_chapters()
+       
+
+
+
 def runSingleMangaDownloadRoutine():
   global name 
   name = raw_input("Enter manga name: ")
   # remove spaces in name
-  name= name.replace(' ', '-').lower()
+  name= name.replace(' ', '-').replace('\'', '').lower()
   global chapter
   chapter =raw_input("Enter chapter number: ")
   chapter=int(chapter)
 
-  print("\nRunning...\n")
+  print("Downloading...\n")
 
   global mangadestinationDir
   mangadestinationDir =name+' '+str(chapter)
   if not os.path.exists(mangadestinationDir): 
   				os.makedirs(mangadestinationDir)
 
-  download_page(mangapandalink)
+  download_page()
   save_chapters()
 
 def runMultipleMangaDownloadRoutine():
   global name 
   name = raw_input("Enter manga name: ")
   # remove spaces in name
-  name= name.replace(' ', '-').lower()
+  name= name.replace(' ', '-').replace('\'', '').lower()
   global chapter
   global end_chapter
   global mangadestinationDir
@@ -85,7 +117,7 @@ def runMultipleMangaDownloadRoutine():
     chapter = chap
     if not os.path.exists(mangadestinationDir): 
             os.makedirs(mangadestinationDir)
-    download_page(mangapandalink)
+    download_page()
     save_chapters() 
 
 def printPopularList():
@@ -103,25 +135,33 @@ def printPopularList():
   else:
       print("Error retreiving manga list")
         
-def download_page(link):  
+def download_page():  
+  global name
   for j in range(1,200):
-    URL = "http://www.mangapanda.com/{}/{}/{}".format(name,chapter,j)    
-    
+    URL = "http://www.mangapanda.com/{}/{}/{}".format(name,chapter,j)   
     request = requests.get(URL)
     if request.status_code == 200:          
           page = requests.get(URL)
           page_content = BeautifulSoup(page.content,'html.parser')    
           end_page = page_content.find('div', attrs={'id':"selectpage"})
-          # get number at the end of menu selector string displaying last chapter of manga   
-          final_page_num = get_trailing_number(end_page.contents[len(end_page.contents)-1])
-          progress(j,final_page_num,'done')
-          row_data=[]
-          for row in page_content.findAll('script',attrs={'type':"text/javascript"}):          
-            row_data.append(row.string)            
-          img.append(re.findall("[^.]ttps.*jpg",row_data[2]))      
+          # get number at the end of menu selector string displaying last chapter of manga  
+          if(end_page is not None): 
+            final_page_num = get_trailing_number(end_page.contents[len(end_page.contents)-1])
+            progress(j,final_page_num,'done')
+            row_data=[]
+            for row in page_content.findAll('script',attrs={'type':"text/javascript"}):          
+                row_data.append(row.string)            
+            img.append(re.findall("[^.]ttps.*jpg",row_data[2]))
+          else:
+              chapter_not_found()
+              break
+    elif j == 1:
+		chapter_not_found()      
+		break
     else:
           break
-  print("successfuly loaded chapter, now saving....")
+  if j > 1:
+    print("successfuly loaded chapter, now saving....")
 
 def save_chapters():
   for i,x in enumerate(img):
@@ -151,6 +191,22 @@ def progress(count, total, suffix=''):
 def get_trailing_number(s):
     m = re.search(r'\d+$', s)
     return int(m.group()) if m else None
+
+def chapter_not_found():
+    global name
+    print "manga title or chapter not found"
+    print "Did you mean? : "   
+    SEARCH_URL = "http://www.mangapanda.com/search/?w={}&rd=&status=&order=&genre=0000000000000000000000000000000000000&p=0".format(name)
+    request = requests.get(SEARCH_URL)
+    if request.status_code == 200:
+        page_content = BeautifulSoup(request.content,'html.parser')   
+        searchedmanga=[]         
+        #  get related manga links and add their text to array
+        for manga in page_content.findAll('div', attrs={'class':"manga_name"}):                    
+            searchedmanga.append(manga.find('a').string)   
+        showRelatedManga(searchedmanga)                  
+    else:
+        print("Error retreiving manga list")
 menu()
 
 
